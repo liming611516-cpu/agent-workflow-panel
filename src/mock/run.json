@@ -1,0 +1,141 @@
+{
+  "runId": "run_20260921_001",
+  "startedAt": "2026-09-21T10:00:00+08:00",
+  "goal": "在 workspace 中实现一个 CLI 待办工具的最小原型",
+  "workflow": {
+    "nodes": [
+      {
+        "id": "planner",
+        "label": "Planner",
+        "x": 40,
+        "y": 180,
+        "status": "success",
+        "inputs": ["用户目标", "可用工具列表"],
+        "outputs": ["任务分解为 3 步", "技术栈: Node.js + TypeScript"],
+        "toolCalls": [
+          { "tool": "list_dir", "args": { "path": "." }, "ms": 12 },
+          { "tool": "read_file", "args": { "path": "package.json" }, "ms": 8 }
+        ]
+      },
+      {
+        "id": "designer",
+        "label": "Designer",
+        "x": 280,
+        "y": 100,
+        "status": "success",
+        "inputs": ["Planner 的任务分解"],
+        "outputs": ["目录结构", "CLI 子命令: add / list / done"],
+        "toolCalls": [{ "tool": "write_file", "args": { "path": "docs/plan.md" }, "ms": 22 }]
+      },
+      {
+        "id": "codegen",
+        "label": "CodeGen",
+        "x": 520,
+        "y": 180,
+        "status": "success",
+        "inputs": ["docs/plan.md"],
+        "outputs": ["src/index.ts", "src/todo.ts"],
+        "toolCalls": [
+          { "tool": "write_file", "args": { "path": "src/todo.ts" }, "ms": 35 },
+          { "tool": "write_file", "args": { "path": "src/index.ts" }, "ms": 41 }
+        ]
+      },
+      {
+        "id": "verify",
+        "label": "Verify",
+        "x": 760,
+        "y": 100,
+        "status": "failed",
+        "inputs": ["src/*.ts"],
+        "outputs": ["tsc 报错: 缺少类型注解"],
+        "toolCalls": [
+          { "tool": "run_command", "args": { "cmd": "npm run build" }, "ms": 820 }
+        ]
+      },
+      {
+        "id": "fixer",
+        "label": "Fixer",
+        "x": 1000,
+        "y": 180,
+        "status": "success",
+        "inputs": ["tsc 错误信息"],
+        "outputs": ["补充类型注解", "重新构建通过"],
+        "toolCalls": [
+          { "tool": "read_file", "args": { "path": "src/todo.ts" }, "ms": 9 },
+          { "tool": "write_file", "args": { "path": "src/todo.ts" }, "ms": 30 },
+          { "tool": "run_command", "args": { "cmd": "npm run build" }, "ms": 760 }
+        ]
+      }
+    ],
+    "edges": [
+      { "from": "planner", "to": "designer" },
+      { "from": "designer", "to": "codegen" },
+      { "from": "codegen", "to": "verify" },
+      { "from": "verify", "to": "fixer" }
+    ]
+  },
+  "timeline": [
+    { "step": "Planner", "status": "success", "ms": 45, "tokensIn": 210, "tokensOut": 96, "note": "分解任务，读取 package.json" },
+    { "step": "Designer", "status": "success", "ms": 120, "tokensIn": 380, "tokensOut": 150, "note": "产出 plan.md" },
+    { "step": "CodeGen", "status": "success", "ms": 520, "tokensIn": 610, "tokensOut": 1420, "note": "写入 2 个源文件" },
+    { "step": "Verify", "status": "failed", "ms": 820, "tokensIn": 230, "tokensOut": 88, "note": "tsc 报错" },
+    { "step": "Fixer", "status": "success", "ms": 800, "tokensIn": 410, "tokensOut": 260, "note": "补类型，构建通过" }
+  ],
+  "prompt": {
+    "system": "你是一个多 Agent 代码流水线的协调者。每个 Agent 只在自己的职责范围内工作，并通过工具与 workspace 交互。工具调用失败时必须把错误信息原样返回，不得编造。",
+    "user": "请在 workspace 下实现一个最小的 CLI 待办工具，支持 add / list / done 三个子命令。"
+  },
+  "toolSchema": [
+    {
+      "type": "function",
+      "function": {
+        "name": "write_file",
+        "description": "在 workspace 内写文件",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "path": { "type": "string" },
+            "content": { "type": "string" }
+          },
+          "required": ["path", "content"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "run_command",
+        "description": "在 workspace 内运行白名单命令",
+        "parameters": {
+          "type": "object",
+          "properties": { "cmd": { "type": "string" } },
+          "required": ["cmd"]
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "read_file",
+        "description": "读取 workspace 内的文件",
+        "parameters": {
+          "type": "object",
+          "properties": { "path": { "type": "string" } },
+          "required": ["path"]
+        }
+      }
+    }
+  ],
+  "mockToolCalls": [
+    {
+      "id": "call_001",
+      "name": "write_file",
+      "arguments": { "path": "src/todo.ts", "content": "// ..." }
+    },
+    {
+      "id": "call_002",
+      "name": "run_command",
+      "arguments": { "cmd": "npm run build" }
+    }
+  ]
+}
